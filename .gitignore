@@ -15,3 +15,6 @@ gradle-app.setting
 
 # Ignore IntelliJ Files
 .idea
+
+# Application property file
+/folex.properties
