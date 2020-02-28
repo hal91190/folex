@@ -13,7 +13,7 @@ class GithubQuery(val login : String, val repositories : List<String>) {
         var content = StringBuilder()
         for (repository in repositories) {
             content.append("""
-                ${repository}repo: repository(name: \"$repository\") {
+                ${repository.replace('.', '_')}repo: repository(name: \"$repository\") {
                     ...repositoryInfo
                 }
             """.trimIndent())

@@ -21,7 +21,10 @@ fun main() {
     val properties = Properties()
     FileReader(PROPERTY_FILE).use { properties.load(it) }
 
-    val firstQuery = GithubQuery("hal91190", listOf("Coster2", "packer"))
+    val repositories = properties.getProperty("repositories").split(',')
+
+    val firstQuery = GithubQuery("hal91190", repositories)
+
     val jsonParser = Parser.default()
     val jsonQuery = jsonParser.parse(StringBuilder(firstQuery.toString())) as JsonObject
 
