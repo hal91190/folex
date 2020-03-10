@@ -57,8 +57,6 @@ fun main() {
             continue
         }
 
-        adocLine += ":heavy_check_mark: | "
-
         val githubQuery = GithubQuery(githubLogin, repositories)
 
         val jsonQuery = jsonParser.parse(StringBuilder(githubQuery.toString())) as JsonObject
@@ -73,6 +71,7 @@ fun main() {
             val jsonResponse = jsonParser.parse(StringBuilder(response.body())) as JsonObject
             val account = jsonResponse.obj("data")?.obj("repositoryOwner")
             if (account != null) {
+                adocLine += ":heavy_check_mark: | "
                 for (repository in repositories) {
                     val repoName = "${repository.replace('.', '_')}repo"
                     adocLine += if (account.obj(repoName) != null) {
@@ -91,6 +90,8 @@ fun main() {
                         ":x: |"
                     }
                 }
+            } else {
+                adocLine += ":x: |"
             }
         }
         outputFile.appendln(adocLine)
