@@ -2,15 +2,17 @@ package fr.uvsq.folex
 
 import com.beust.klaxon.JsonObject
 import com.beust.klaxon.Parser
+import fr.uvsq.folex.Cfg.githubApiUrl
+import fr.uvsq.folex.Cfg.githubToken
+import fr.uvsq.folex.Cfg.repositories
+import fr.uvsq.folex.Cfg.studentFilename
 import org.apache.commons.csv.CSVFormat
-import java.io.FileReader
 import java.net.URI
 import java.net.http.HttpClient
 import java.net.http.HttpRequest
 import java.net.http.HttpResponse
 import java.nio.file.Files
 import java.nio.file.Paths
-import java.util.*
 
 
 const val PROPERTY_FILE = "folex.properties"
@@ -23,15 +25,9 @@ const val MINIMUM_NUMBER_OF_COMMITS = 4
  * @version 2020
  */
 fun main() {
-    val properties = Properties()
-    FileReader(PROPERTY_FILE).use { properties.load(it) }
-
-    val repositories = properties.getProperty("repositories").split(',')
-
     val jsonParser = Parser.default()
     val httpClient = HttpClient.newBuilder().build()
 
-    val studentFilename = properties.getProperty("student_file")
     val outputFilename = studentFilename.substring(0, studentFilename.lastIndexOf(".")) + ".md"
     val outputFile = Files.newBufferedWriter(Paths.get(outputFilename))
 
@@ -44,8 +40,7 @@ fun main() {
     outputFile.appendln(tableHeader)
     outputFile.appendln(tableSeparator)
 
-    val studentFile = properties.getProperty("student_file")
-    val reader = Files.newBufferedReader(Paths.get(studentFile))
+    val reader = Files.newBufferedReader(Paths.get(studentFilename))
     val students = CSVFormat.DEFAULT.withFirstRecordAsHeader().parse(reader)
     for (student in students) {
         val githubLogin = student["url"].substring(student["url"].lastIndexOf("/") + 1).trimEnd()
@@ -62,8 +57,8 @@ fun main() {
         val jsonQuery = jsonParser.parse(StringBuilder(githubQuery.toString())) as JsonObject
 
         val httpRequest = HttpRequest.newBuilder()
-            .uri(URI.create(properties.getProperty("github_api_url")))
-            .header("Authorization", "bearer ${properties.getProperty("github_token")}")
+            .uri(URI.create(githubApiUrl))
+            .header("Authorization", "bearer ${githubToken}")
             .POST(HttpRequest.BodyPublishers.ofString(jsonQuery.toJsonString()))
             .build()
         val response = httpClient.send(httpRequest, HttpResponse.BodyHandlers.ofString())
@@ -78,11 +73,7 @@ fun main() {
                         val jsonRepository = account.obj(repoName)?.obj("defaultBranchRef")
                         if (jsonRepository != null) {
                             val nbCommits = jsonRepository.obj("target")?.obj("history")?.int("totalCount") ?: 0
-                            if (nbCommits > MINIMUM_NUMBER_OF_COMMITS) {
-                                ":heavy_check_mark: |"
-                            } else { // insufficient number of commits
-                                ":warning: |"
-                            }
+                            "${if (nbCommits > MINIMUM_NUMBER_OF_COMMITS) ":heavy_check_mark:" else ":warning:"} ($nbCommits) |"
                         } else { // repository does not have commit
                             ":x: |"
                         }
