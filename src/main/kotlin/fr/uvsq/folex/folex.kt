@@ -1,19 +1,13 @@
 package fr.uvsq.folex
 
-import com.beust.klaxon.JsonObject
-import com.beust.klaxon.Parser
 import fr.uvsq.folex.Cfg.githubApiUrl
 import fr.uvsq.folex.Cfg.githubToken
-import fr.uvsq.folex.Cfg.repositories
+import fr.uvsq.folex.Cfg.repositoryNames
 import fr.uvsq.folex.Cfg.studentFilename
-import java.net.URI
-import java.net.http.HttpClient
-import java.net.http.HttpRequest
-import java.net.http.HttpResponse
 import java.nio.file.Files
 import java.nio.file.Paths
 
-const val MINIMUM_NUMBER_OF_COMMITS = 4
+const val MINIMUM_NUMBER_OF_COMMITS : Int = 4
 
 /**
  * La classe <code>FolexKt</code> est la classe principale de l'application.
@@ -22,15 +16,12 @@ const val MINIMUM_NUMBER_OF_COMMITS = 4
  * @version 2020
  */
 fun main() {
-    val jsonParser = Parser.default()
-    val httpClient = HttpClient.newBuilder().build()
-
     val outputFilename = studentFilename.substring(0, studentFilename.lastIndexOf(".")) + ".md"
     val outputFile = Files.newBufferedWriter(Paths.get(outputFilename))
 
     var tableHeader = "No. d'étudiant | Nom | Prénom | Github |"
     var tableSeparator = "-------------- | ----|--------|--------|"
-    for (repository in repositories) {
+    for (repository in repositoryNames) {
         tableHeader += " $repository |"
         tableSeparator += "----------|"
     }
@@ -48,36 +39,24 @@ fun main() {
             continue
         }
 
-        val githubQuery = GithubQuery(student.githubLogin, repositories)
+        val githubQuery = GithubQuery(student.githubLogin, repositoryNames)
 
-        val jsonQuery = jsonParser.parse(StringBuilder(githubQuery.toString())) as JsonObject
+        val githubGraphqlRequest = GithubGraphqlRequest(githubApiUrl, githubToken, githubQuery)
 
-        val httpRequest = HttpRequest.newBuilder()
-            .uri(URI.create(githubApiUrl))
-            .header("Authorization", "bearer $githubToken")
-            .POST(HttpRequest.BodyPublishers.ofString(jsonQuery.toJsonString()))
-            .build()
-        val response = httpClient.send(httpRequest, HttpResponse.BodyHandlers.ofString())
-        if (response.statusCode() == 200) {
-            val jsonResponse = jsonParser.parse(StringBuilder(response.body())) as JsonObject
-            val account = jsonResponse.obj("data")?.obj("repositoryOwner")
-            if (account != null) {
+        if (githubGraphqlRequest.response.statusCode() == 200) {
+            val repositories = githubGraphqlRequest.parseResponse(repositoryNames)
+
+            if (repositories != null) {
                 adocLine += ":heavy_check_mark: | "
-                for (repository in repositories) {
-                    val repoName = "${repository.replace('.', '_')}repo"
-                    adocLine += if (account.obj(repoName) != null) {
-                        val jsonRepository = account.obj(repoName)?.obj("defaultBranchRef")
-                        if (jsonRepository != null) {
-                            val nbCommits = jsonRepository.obj("target")?.obj("history")?.int("totalCount") ?: 0
-                            "${if (nbCommits > MINIMUM_NUMBER_OF_COMMITS) ":heavy_check_mark:" else ":warning:"} ($nbCommits) |"
-                        } else { // repository does not have commit
-                            ":x: |"
-                        }
-                    } else { // repository does not exist
-                        ":x: |"
+                for (repositoryName in repositoryNames) {
+                    adocLine += when (val nbCommits = repositories[repositoryName]) {
+                        0 -> ":x: |"
+                        in 1..MINIMUM_NUMBER_OF_COMMITS -> ":warning: ($nbCommits)|"
+                        is Int -> ":heavy_check_mark: ($nbCommits)|"
+                        else -> ":x: |"
                     }
                 }
-            } else {
+            } else { // le compte n'existe pas ou le code de réponse est incorrect
                 adocLine += ":x: |"
             }
         }
