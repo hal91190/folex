@@ -6,7 +6,6 @@ import fr.uvsq.folex.Cfg.githubApiUrl
 import fr.uvsq.folex.Cfg.githubToken
 import fr.uvsq.folex.Cfg.repositories
 import fr.uvsq.folex.Cfg.studentFilename
-import org.apache.commons.csv.CSVFormat
 import java.net.URI
 import java.net.http.HttpClient
 import java.net.http.HttpRequest
@@ -14,8 +13,6 @@ import java.net.http.HttpResponse
 import java.nio.file.Files
 import java.nio.file.Paths
 
-
-const val PROPERTY_FILE = "folex.properties"
 const val MINIMUM_NUMBER_OF_COMMITS = 4
 
 /**
@@ -40,25 +37,24 @@ fun main() {
     outputFile.appendln(tableHeader)
     outputFile.appendln(tableSeparator)
 
-    val reader = Files.newBufferedReader(Paths.get(studentFilename))
-    val students = CSVFormat.DEFAULT.withFirstRecordAsHeader().parse(reader)
-    for (student in students) {
-        val githubLogin = student["url"].substring(student["url"].lastIndexOf("/") + 1).trimEnd()
-        var adocLine = "${student["no_etudiant"]} | ${student["nom"]} | ${student["prenom"]} | "
+    val studentFileParser = StudentFileParser(studentFilename)
 
-        if (!student["url"].startsWith("https://github.com/", ignoreCase = true)) {
+    for (student in studentFileParser.students) {
+        var adocLine = "${student.studentNo} | ${student.lastname} | ${student.firstname} | "
+
+        if (student.githubLogin.isEmpty()) {
             adocLine += ":x: |"
             outputFile.appendln(adocLine)
             continue
         }
 
-        val githubQuery = GithubQuery(githubLogin, repositories)
+        val githubQuery = GithubQuery(student.githubLogin, repositories)
 
         val jsonQuery = jsonParser.parse(StringBuilder(githubQuery.toString())) as JsonObject
 
         val httpRequest = HttpRequest.newBuilder()
             .uri(URI.create(githubApiUrl))
-            .header("Authorization", "bearer ${githubToken}")
+            .header("Authorization", "bearer $githubToken")
             .POST(HttpRequest.BodyPublishers.ofString(jsonQuery.toJsonString()))
             .build()
         val response = httpClient.send(httpRequest, HttpResponse.BodyHandlers.ofString())
