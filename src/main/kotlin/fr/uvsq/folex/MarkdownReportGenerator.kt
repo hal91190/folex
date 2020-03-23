@@ -6,6 +6,9 @@ import fr.uvsq.folex.Cfg.repositoryNames
 import java.io.Closeable
 import java.nio.file.Files
 import java.nio.file.Paths
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
+import java.time.format.FormatStyle
 
 const val MINIMUM_NUMBER_OF_COMMITS = 4
 
@@ -29,6 +32,10 @@ class MarkdownReportGenerator(val reportFilename : String, val students : List<S
      * Écrit l'entête du tableau.
      */
     private fun writeHeader() {
+        val now = LocalDateTime.now().format(DateTimeFormatter.ofLocalizedDateTime(FormatStyle.MEDIUM))
+        outputFile.appendln("Dernière mise à jour : $now")
+        outputFile.appendln()
+
         var tableHeader = "No. d'étudiant | Nom | Prénom | Github |"
         var tableSeparator = "-------------- | ----|--------|--------|"
         for (repository in repositoryNames) {
