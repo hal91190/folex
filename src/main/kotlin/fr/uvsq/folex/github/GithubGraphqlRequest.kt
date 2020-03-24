@@ -1,7 +1,9 @@
-package fr.uvsq.folex
+package fr.uvsq.folex.github
 
 import com.beust.klaxon.JsonObject
 import com.beust.klaxon.Parser
+import fr.uvsq.folex.Cfg
+import fr.uvsq.folex.Student
 import java.net.URI
 import java.net.http.HttpClient
 import java.net.http.HttpRequest
@@ -14,10 +16,36 @@ import java.net.http.HttpResponse
  * @version 2020
  */
 class GithubGraphqlRequest(githubApiUrl : String, githubToken : String, query: GithubQuery) {
+    companion object {
+        /**
+         * Complète la liste des étudiants avec leurs dépôts github.
+         */
+        fun queryGithubForStudents(students: List<Student>) {
+            for (student in students) {
+                if (!student.hasGithubAccount()) continue
+
+                val githubQuery = GithubQuery(
+                    student.githubLogin,
+                    Cfg.repositoryNames
+                )
+
+                val githubGraphqlRequest = GithubGraphqlRequest(
+                    Cfg.githubApiUrl,
+                    Cfg.githubToken,
+                    githubQuery
+                )
+
+                if (githubGraphqlRequest.response.statusCode() == 200) {
+                    student.repositories = githubGraphqlRequest.parseResponse(Cfg.repositoryNames)
+                }
+            }
+        }
+    }
+
     private val jsonParser = Parser.default()
     private val httpClient = HttpClient.newBuilder().build()
 
-    val response : HttpResponse<String>
+    private val response : HttpResponse<String>
     init {
         val jsonQuery = jsonParser.parse(StringBuilder(query.toString())) as JsonObject
 
@@ -29,7 +57,7 @@ class GithubGraphqlRequest(githubApiUrl : String, githubToken : String, query: G
         response = httpClient.send(httpRequest, HttpResponse.BodyHandlers.ofString())
     }
 
-    fun parseResponse(repositoryNames : List<String>) : Map<String, Int>? {
+    private fun parseResponse(repositoryNames : List<String>) : Map<String, Int>? {
         if (response.statusCode() != 200) return null
         val jsonResponse = jsonParser.parse(StringBuilder(response.body())) as JsonObject
         val account = jsonResponse.obj("data")?.obj("repositoryOwner") ?: return null

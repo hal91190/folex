@@ -1,4 +1,4 @@
-package fr.uvsq.folex
+package fr.uvsq.folex.github
 
 class GithubQuery(login : String, private val repositories : List<String>) {
     override fun toString(): String {
