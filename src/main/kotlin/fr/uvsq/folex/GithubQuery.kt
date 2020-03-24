@@ -1,6 +1,6 @@
 package fr.uvsq.folex
 
-class GithubQuery(val login : String, val repositories : List<String>) {
+class GithubQuery(login : String, private val repositories : List<String>) {
     override fun toString(): String {
         return """
             $header
@@ -10,7 +10,7 @@ class GithubQuery(val login : String, val repositories : List<String>) {
     }
 
     private fun content(): String {
-        var content = StringBuilder()
+        val content = StringBuilder()
         for (repository in repositories) {
             content.append("""
                 ${repository.replace('.', '_')}repo: repository(name: \"$repository\") {

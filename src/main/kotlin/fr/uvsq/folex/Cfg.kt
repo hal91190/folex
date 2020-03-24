@@ -27,7 +27,7 @@ object Cfg {
     /**
      * La liste des repositories à considérer.
      */
-    val repositoryNames : List<String> = properties.getProperty("repositories").split(',')
+    val repositoryNames = properties.getProperty("repositories").split(',')
 
     /**
      * Le nom du fichier CSV contentant la liste des étudiants.

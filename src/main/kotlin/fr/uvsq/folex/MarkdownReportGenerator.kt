@@ -22,7 +22,7 @@ const val MD_WARNING = ":warning:"
  * @author hal
  * @version 2020
  */
-class MarkdownReportGenerator(val reportFilename : String, val students : List<Student>) : Closeable {
+class MarkdownReportGenerator(reportFilename : String, private val students : List<Student>) : Closeable {
     /**
      * Fichier de sortie.
      */
@@ -87,7 +87,7 @@ class MarkdownReportGenerator(val reportFilename : String, val students : List<S
     /**
      * Génère le rapport.
      */
-    fun generate() : Unit {
+    fun generate() {
         writeHeader()
         writeBody()
 

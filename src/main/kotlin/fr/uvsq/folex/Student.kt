@@ -1,7 +1,7 @@
 package fr.uvsq.folex
 
 /**
- * La classe <code>Student</code> represente un étudiant.
+ * La classe <code>Student</code> représente un étudiant.
  *
  * @author hal
  * @version 2020
