@@ -6,4 +6,8 @@ package fr.uvsq.folex
  * @author hal
  * @version 2020
  */
-data class Student(val studentNo : String, val lastname : String, val firstname : String, val githubLogin : String)
+data class Student(val studentNo : String, val lastname : String, val firstname : String, val githubLogin : String) {
+    var repositories : Map<String, Int>? = null
+
+    fun hasGithubAccount() = !githubLogin.isEmpty()
+}

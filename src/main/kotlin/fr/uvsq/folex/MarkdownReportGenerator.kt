@@ -53,32 +53,25 @@ class MarkdownReportGenerator(reportFilename : String, private val students : Li
         for (student in students) {
             var mdLine = "${student.studentNo} | ${student.lastname} | ${student.firstname} | "
 
-            if (student.githubLogin.isEmpty()) {
+            if (!student.hasGithubAccount()) {
                 mdLine += "$MD_KO |"
                 outputFile.appendln(mdLine)
                 continue
             }
 
-            val githubQuery = GithubQuery(student.githubLogin, repositoryNames)
-
-            val githubGraphqlRequest = GithubGraphqlRequest(githubApiUrl, githubToken, githubQuery)
-
-            if (githubGraphqlRequest.response.statusCode() == 200) {
-                val repositories = githubGraphqlRequest.parseResponse(repositoryNames)
-
-                if (repositories != null) {
-                    mdLine += "$MD_OK | "
-                    for (repositoryName in repositoryNames) {
-                        mdLine += when (val nbCommits = repositories[repositoryName]) {
-                            0 -> "$MD_KO |"
-                            in 1..MINIMUM_NUMBER_OF_COMMITS -> "$MD_WARNING ($nbCommits)|"
-                            is Int -> "$MD_OK ($nbCommits)|"
-                            else -> "$MD_KO |"
-                        }
+            val repositories = student.repositories
+            if (repositories != null) {
+                mdLine += "$MD_OK | "
+                for (repositoryName in repositoryNames) {
+                    mdLine += when (val nbCommits = repositories[repositoryName]) {
+                        0 -> "$MD_KO |"
+                        in 1..MINIMUM_NUMBER_OF_COMMITS -> "$MD_WARNING ($nbCommits)|"
+                        is Int -> "$MD_OK ($nbCommits)|"
+                        else -> "$MD_KO |"
                     }
-                } else { // le compte n'existe pas ou le code de réponse est incorrect
-                    mdLine += "$MD_KO |"
                 }
+            } else { // le compte n'existe pas ou le code de réponse est incorrect
+                mdLine += "$MD_KO |"
             }
             outputFile.appendln(mdLine)
         }
