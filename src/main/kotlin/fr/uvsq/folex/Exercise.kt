@@ -12,7 +12,7 @@ import java.nio.file.Path
  * @author hal
  * @version 2020
  */
-class Exercise(githubLogin : String, repository : String, studentPath : Path) {
+class Exercise(student : Student, repository : String, val nbCommits : Int) {
     companion object {
         private val logger = LoggerFactory.getLogger(Exercise::class.java)
 
@@ -20,54 +20,42 @@ class Exercise(githubLogin : String, repository : String, studentPath : Path) {
          * Nom du répertoire qui recevra les projets.
          */
         private const val PROJECT_DIRECTORY_NAME = "projects"
+        private val projectPath = FileSystems.getDefault().getPath(PROJECT_DIRECTORY_NAME)
 
         /**
          * Clone ou met à jour les dépôts des étudiants.
          */
         fun cloneOrPullRepositories(students : List<Student>) {
-            val projectPath = createProjectDirectory()
-
+            createProjectDirectory()
             for (student in students) {
                 if (!student.hasGithubAccount()) continue
-                val studentPath = createStudentPath(projectPath, student)
-                val repositoryNames = student.repositories?.keys ?: continue
-                for (repositoryName in repositoryNames) {
-                    val exercise = Exercise(student.githubLogin, repositoryName, studentPath)
+                val exercises = student.repositories ?: continue
+                for (repository in exercises) {
+                    val exercise = repository.value
                     if (exercise.exists) {
                         exercise.pullRepository()
-                        logger.info("Pulling repository {} for github account {}", repositoryName, student.githubLogin)
+                        logger.info("Pulling repository {} for github account {}", repository.key, student.githubLogin)
                     } else {
                         exercise.cloneRepository()
-                        logger.info("Cloning repository {} for github account {}", repositoryName, student.githubLogin)
+                        logger.info("Cloning repository {} for github account {}", repository.key, student.githubLogin)
                     }
                 }
             }
         }
 
         private fun createProjectDirectory() : Path {
-            val fs = FileSystems.getDefault()
-            val projectPath = fs.getPath(PROJECT_DIRECTORY_NAME)
             if (!Files.exists(projectPath)) {
                 Files.createDirectory(projectPath)
                 logger.info("Creating directory {}", projectPath)
             }
             return projectPath
         }
-
-        private fun createStudentPath(projectPath: Path, student: Student): Path {
-            val studentPath = projectPath.resolve(student.githubLogin)
-            if (!Files.exists(studentPath)) {
-                Files.createDirectory(studentPath)
-                logger.info("Creating student directory {}", projectPath)
-            }
-            return studentPath
-        }
     }
 
     private val gitDirectory = ".git"
 
-    private val repositoryUrl = "$GITHUB_URL_PREFIX/$githubLogin/$repository"
-    private val localPath = studentPath.resolve(repository)
+    private val repositoryUrl = "$GITHUB_URL_PREFIX/${student.githubLogin}/$repository"
+    private val localPath = student.createLocalDirectory(projectPath).resolve(repository)
 
     val exists = Files.exists(localPath.resolve(gitDirectory))
 

@@ -3,6 +3,7 @@ package fr.uvsq.folex.github
 import com.beust.klaxon.JsonObject
 import com.beust.klaxon.Parser
 import fr.uvsq.folex.Cfg
+import fr.uvsq.folex.Exercise
 import fr.uvsq.folex.Student
 import java.net.URI
 import java.net.http.HttpClient
@@ -15,7 +16,7 @@ import java.net.http.HttpResponse
  * @author hal
  * @version 2020
  */
-class GithubGraphqlRequest(githubApiUrl : String, githubToken : String, query: GithubQuery) {
+class GithubGraphqlRequest(githubApiUrl: String, githubToken: String, private val student: Student) {
     companion object {
         /**
          * Complète la liste des étudiants avec leurs dépôts github.
@@ -24,15 +25,10 @@ class GithubGraphqlRequest(githubApiUrl : String, githubToken : String, query: G
             for (student in students) {
                 if (!student.hasGithubAccount()) continue
 
-                val githubQuery = GithubQuery(
-                    student.githubLogin,
-                    Cfg.repositoryNames
-                )
-
                 val githubGraphqlRequest = GithubGraphqlRequest(
                     Cfg.githubApiUrl,
                     Cfg.githubToken,
-                    githubQuery
+                    student
                 )
 
                 if (githubGraphqlRequest.response.statusCode() == 200) {
@@ -45,9 +41,11 @@ class GithubGraphqlRequest(githubApiUrl : String, githubToken : String, query: G
     private val jsonParser = Parser.default()
     private val httpClient = HttpClient.newBuilder().build()
 
-    private val response : HttpResponse<String>
+    private val response: HttpResponse<String>
+
     init {
-        val jsonQuery = jsonParser.parse(StringBuilder(query.toString())) as JsonObject
+        val githubQuery = GithubQuery(student.githubLogin, Cfg.repositoryNames)
+        val jsonQuery = jsonParser.parse(StringBuilder(githubQuery.toString())) as JsonObject
 
         val httpRequest = HttpRequest.newBuilder()
             .uri(URI.create(githubApiUrl))
@@ -57,19 +55,19 @@ class GithubGraphqlRequest(githubApiUrl : String, githubToken : String, query: G
         response = httpClient.send(httpRequest, HttpResponse.BodyHandlers.ofString())
     }
 
-    private fun parseResponse(repositoryNames : List<String>) : Map<String, Int>? {
+    private fun parseResponse(repositoryNames: List<String>): Map<String, Exercise>? {
         if (response.statusCode() != 200) return null
         val jsonResponse = jsonParser.parse(StringBuilder(response.body())) as JsonObject
         val account = jsonResponse.obj("data")?.obj("repositoryOwner") ?: return null
-        val repositories = mutableMapOf<String, Int>()
+        val repositories = mutableMapOf<String, Exercise>()
         for (repositoryName in repositoryNames) {
             val fixedRepositoryName = "${repositoryName.replace('.', '_')}repo"
             if (account.obj(fixedRepositoryName) != null) { // le dépôt existe
                 val jsonRepository = account.obj(fixedRepositoryName)?.obj("defaultBranchRef")
                 val nbCommits = if (jsonRepository != null)
-                    jsonRepository.obj("target")?.obj("history")?.int("totalCount")?: 0
+                    jsonRepository.obj("target")?.obj("history")?.int("totalCount") ?: 0
                 else 0
-                repositories[repositoryName] = nbCommits
+                repositories[repositoryName] = Exercise(student, repositoryName, nbCommits)
             }
         }
         return repositories

@@ -63,7 +63,7 @@ class MarkdownReportGenerator(reportFilename : String, private val students : Li
             if (repositories != null) {
                 mdLine += "$MD_OK | "
                 for (repositoryName in repositoryNames) {
-                    mdLine += when (val nbCommits = repositories[repositoryName]) {
+                    mdLine += when (val nbCommits = repositories[repositoryName]?.nbCommits) {
                         0 -> "$MD_KO |"
                         in 1..MINIMUM_NUMBER_OF_COMMITS -> "$MD_WARNING ($nbCommits)|"
                         is Int -> "$MD_OK ($nbCommits)|"
