@@ -15,6 +15,8 @@ fun main() {
 
     Exercise.cloneOrPullRepositories(studentFileParser.students)
 
+    Exercise.buildExercisesWithMaven(studentFileParser.students)
+
     val outputFilename = studentFilename.substring(0, studentFilename.lastIndexOf(".")) + ".md"
     MarkdownReportGenerator(outputFilename, studentFileParser.students).use { report -> report.generate() }
 }
