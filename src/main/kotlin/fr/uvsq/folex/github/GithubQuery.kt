@@ -1,5 +1,11 @@
 package fr.uvsq.folex.github
 
+/**
+ * La classe <code>GithubQuery</code> représente la requête GraphQL pour github.
+ *
+ * @author hal
+ * @version 2020
+ */
 class GithubQuery(login : String, private val repositories : List<String>) {
     override fun toString(): String {
         return """

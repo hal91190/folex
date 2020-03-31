@@ -42,7 +42,7 @@ class StudentFileParser(studentFilename: String) {
                         student[CSV_URL].substring(student[CSV_URL].lastIndexOf("/") + 1).trimEnd()
                     else
                         ""
-                    logger.trace(
+                    logger.debug(
                         "Loading student ({}, {}, {}, {})",
                         student[CSV_STUDENT_NUMBER],
                         student[CSV_STUDENT_LASTNAME],
@@ -60,7 +60,7 @@ class StudentFileParser(studentFilename: String) {
                 }
             }
         } catch (e : IOException) {
-            logger.error("Erreur d'E/S lors de la lecture du fichier CSV {}", studentFilename)
+            logger.error("I/O error reading CSV file {}", studentFilename)
         }
         students = mutableStudents
         logger.info("{} student(s) loaded", students.size)

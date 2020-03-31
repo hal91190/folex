@@ -17,7 +17,7 @@ fun main() {
         exitProcess(1)
     }
 
-    //GithubGraphqlRequest.queryGithubForStudents(students)
+    GithubGraphqlRequest.queryGithubForStudents(students)
 
     //Exercise.cloneOrPullRepositories(students)
 
