@@ -10,13 +10,14 @@ import fr.uvsq.folex.github.GithubGraphqlRequest
  * @version 2020
  */
 fun main() {
-    val studentFileParser = StudentFileParser(studentFilename)
-    GithubGraphqlRequest.queryGithubForStudents(studentFileParser.students)
+    val students = StudentFileParser(studentFilename).students
 
-    Exercise.cloneOrPullRepositories(studentFileParser.students)
+    //GithubGraphqlRequest.queryGithubForStudents(students)
 
-    Exercise.buildExercisesWithMaven(studentFileParser.students)
+    //Exercise.cloneOrPullRepositories(students)
 
-    val outputFilename = studentFilename.substring(0, studentFilename.lastIndexOf(".")) + ".md"
-    MarkdownReportGenerator(outputFilename, studentFileParser.students).use { report -> report.generate() }
+    //Exercise.buildExercisesWithMaven(students)
+
+    //val outputFilename = studentFilename.substring(0, studentFilename.lastIndexOf(".")) + ".md"
+    //MarkdownReportGenerator(outputFilename, students).use { report -> report.generate() }
 }

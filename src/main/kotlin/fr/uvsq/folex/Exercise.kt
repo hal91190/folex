@@ -7,6 +7,7 @@ import java.nio.file.FileSystems
 import java.nio.file.Files
 import java.nio.file.Path
 
+const val GITHUB_URL_PREFIX = "https://github.com/"
 
 /**
  * La classe <code>Exercise</code> représente un exercice dans un repository github.
