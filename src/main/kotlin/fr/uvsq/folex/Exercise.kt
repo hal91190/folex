@@ -6,8 +6,8 @@ import org.slf4j.LoggerFactory
 import java.nio.file.FileSystems
 import java.nio.file.Files
 import java.nio.file.Path
+import java.util.stream.StreamSupport
 
-const val GITHUB_URL_PREFIX = "https://github.com/"
 
 /**
  * La classe <code>Exercise</code> représente un exercice dans un repository github.
@@ -25,6 +25,7 @@ class Exercise(student : Student, repository : String, val nbCommits : Int) {
         private const val PROJECT_DIRECTORY_NAME = "projects"
         private val projectPath = FileSystems.getDefault().getPath(PROJECT_DIRECTORY_NAME)
 
+        private const val GITHUB_URL_PREFIX = "https://github.com/"
         private const val GIT_DIRECTORY = ".git"
         private const val MAVEN_POM_FILE = "pom.xml"
 
@@ -34,8 +35,22 @@ class Exercise(student : Student, repository : String, val nbCommits : Int) {
         fun cloneOrPullRepositories(students : List<Student>) {
             createProjectDirectory()
             for (student in students) {
-                if (!student.hasGithubAccount()) continue
-                val exercises = student.repositories ?: continue
+                logger.debug("Cloning or updating repositories for student {}", student)
+                if (!student.hasGithubAccount())  {
+                    logger.debug("Student {} has no github account", student)
+                    continue
+                }
+
+                if (student.repositories == null) {
+                    logger.debug("Student {} has no exercise, attempting to load them locally", student.githubLogin)
+                    loadLocalExercises(student)
+                }
+                val exercises = student.repositories
+                if (exercises == null) {
+                    logger.debug("Student {} has definitely no exercise", student)
+                    continue
+                }
+
                 for (repository in exercises) {
                     val exercise = repository.value
                     if (exercise.exists) {
@@ -47,6 +62,23 @@ class Exercise(student : Student, repository : String, val nbCommits : Int) {
                     }
                 }
             }
+        }
+
+        private fun loadLocalExercises(student: Student) {
+            val repositories = mutableMapOf<String, Exercise>()
+            for (repositoryName in Cfg.repositoryNames) {
+                val localPath = student.getOrCreateLocalDirectory(projectPath).resolve(repositoryName)
+                if (!Files.exists(localPath.resolve(GIT_DIRECTORY))) {
+                    logger.trace("Directory {} exists but is not a git repository", localPath)
+                    continue
+                }
+                val repository = Git.open(localPath.toFile())
+                val log = repository.log().call()
+                val nbCommits = StreamSupport.stream(log.spliterator(), false).count()
+                logger.trace("Adding exercise {} with {} commits for student {}", repositoryName, nbCommits, student.githubLogin)
+                repositories[repositoryName] = Exercise(student, repositoryName, nbCommits.toInt())
+            }
+            student.repositories = if (repositories.isEmpty()) null else repositories
         }
 
         fun buildExercisesWithMaven(students: List<Student>) {
@@ -86,7 +118,7 @@ class Exercise(student : Student, repository : String, val nbCommits : Int) {
     }
 
     private val repositoryUrl = "$GITHUB_URL_PREFIX/${student.githubLogin}/$repository"
-    private val localPath = student.createLocalDirectory(projectPath).resolve(repository)
+    private val localPath = student.getOrCreateLocalDirectory(projectPath).resolve(repository)
 
     val exists = Files.exists(localPath.resolve(GIT_DIRECTORY))
     val isMavenProject = Files.exists(localPath.resolve(MAVEN_POM_FILE))

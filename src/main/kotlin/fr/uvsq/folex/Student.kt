@@ -28,9 +28,9 @@ data class Student(val studentNo : String, val lastname : String, val firstname 
     fun hasGithubAccount() = githubLogin.isNotEmpty()
 
     /**
-     * Crée le réperoire local de l'étudiant s'il n'existe pas déjà.
+     * Retourne ou crée (s'il n'existe pas déjà) le réperoire local de l'étudiant.
      */
-    fun createLocalDirectory(projectPath: Path): Path {
+    fun getOrCreateLocalDirectory(projectPath: Path): Path {
         val studentPath = projectPath.resolve(githubLogin)
         if (!Files.exists(studentPath)) {
             Files.createDirectory(studentPath)

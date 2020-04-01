@@ -1,16 +1,18 @@
 package fr.uvsq.folex
 
 import com.github.ajalt.clikt.core.CliktCommand
+import com.github.ajalt.clikt.parameters.options.flag
 import com.github.ajalt.clikt.parameters.options.option
-import com.github.ajalt.clikt.parameters.types.path
 import fr.uvsq.folex.Cfg.studentFilename
 import fr.uvsq.folex.github.GithubGraphqlRequest
 import java.io.IOException
 import kotlin.system.exitProcess
 
 class Folex: CliktCommand() {
-    val input by option(help = "Nom du fichier CSV contenant la liste des étudiants")
-    val output by option(help = "Nom du fichier Markdown de sortie")
+    private val clone by option(help = "Clone ou met à jour les dépôts locaux à partir de github").flag()
+    private val input by option("-i", "--input", help = "Nom du fichier CSV contenant la liste des étudiants")
+    private val noGithub by option(help = "Ignore l'interrogation de l'API github").flag()
+    private val output by option("-o", "--output", help = "Nom du fichier Markdown de sortie")
 
     override fun run() {
         val inputFilename = input ?: studentFilename
@@ -20,9 +22,13 @@ class Folex: CliktCommand() {
             exitProcess(1)
         }
 
-        GithubGraphqlRequest.queryGithubForStudents(students)
+        if (!noGithub){
+            GithubGraphqlRequest.queryGithubForStudents(students)
+        }
 
-        //Exercise.cloneOrPullRepositories(students)
+        if (clone) {
+            Exercise.cloneOrPullRepositories(students)
+        }
 
         //Exercise.buildExercisesWithMaven(students)
 
