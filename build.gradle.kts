@@ -12,6 +12,8 @@ val csvVersion = "1.8"
 val jGitVersion = "5.7.0.202003110725-r"
 val mvnVersion = "3.0.1"
 
+val cliktVersion = "2.6.0"
+
 val jUnitVersion = "5.5.1"
 
 val slf4JVersion = "1.7.30"
@@ -31,6 +33,8 @@ dependencies {
     implementation("org.apache.commons:commons-csv:$csvVersion")
     implementation("org.eclipse.jgit:org.eclipse.jgit:$jGitVersion")
     implementation("org.apache.maven.shared:maven-invoker:$mvnVersion")
+
+    implementation("com.github.ajalt:clikt:$cliktVersion")
 
     implementation("org.slf4j:slf4j-api:$slf4JVersion")
     implementation("ch.qos.logback:logback-classic:$logbackVersion")
