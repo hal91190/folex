@@ -9,6 +9,7 @@ import java.io.IOException
 import kotlin.system.exitProcess
 
 class Folex: CliktCommand() {
+    private val build by option(help = "Construit les projets").flag()
     private val clone by option(help = "Clone ou met à jour les dépôts locaux à partir de github").flag()
     private val input by option("-i", "--input", help = "Nom du fichier CSV contenant la liste des étudiants")
     private val noGithub by option(help = "Ignore l'interrogation de l'API github").flag()
@@ -30,7 +31,9 @@ class Folex: CliktCommand() {
             Exercise.cloneOrPullRepositories(students)
         }
 
-        //Exercise.buildExercisesWithMaven(students)
+        if (build) {
+            Exercise.buildExercisesWithMaven(students)
+        }
 
         val outputFilename = output ?: inputFilename.replaceAfterLast(".", "md")
         try {
