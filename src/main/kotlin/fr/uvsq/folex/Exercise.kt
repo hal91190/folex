@@ -47,20 +47,19 @@ class Exercise(student : Student, repository : String, val nbCommits : Int) {
                     logger.debug("Student {} has no exercise, attempting to load them locally", student.githubLogin)
                     loadLocalExercises(student)
                 }
-                val exercises = student.repositories
-                if (exercises == null) {
-                    logger.debug("Student {} has definitely no exercise", student.githubLogin)
-                    continue
-                }
+                val exercises = student.repositories ?: mutableMapOf()
 
-                for (repository in exercises) {
-                    val exercise = repository.value
+                for (repositoryName in Cfg.repositoryNames) {
+                    //TODO problème avec la création avec un nbCommit à -1
+                    val exercise = exercises[repositoryName] ?: Exercise(student, repositoryName, -1)
                     if (exercise.exists) {
                         exercise.pullRepository()
-                        logger.trace("Pulling repository {} for github account {}", repository.key, student.githubLogin)
+                        logger.trace("Pulling repository {} for github account {}", repositoryName, student.githubLogin)
                     } else {
+                        //TODO gérer le cas des repository privée
+                        // Exception in thread "main" org.eclipse.jgit.api.errors.TransportException: https://github.com//UVSQ21917829/pglp_5.2: Authentication is required but no CredentialsProvider has been registered
                         exercise.cloneRepository()
-                        logger.trace("Cloning repository {} for github account {}", repository.key, student.githubLogin)
+                        logger.trace("Cloning repository {} for github account {}", repositoryName, student.githubLogin)
                     }
                 }
             }
