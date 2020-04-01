@@ -23,6 +23,13 @@ class StudentFileParser(studentFilename: String) {
         private const val CSV_STUDENT_NUMBER = "no_etudiant"
         private const val CSV_STUDENT_LASTNAME = "nom"
         private const val CSV_STUDENT_FIRSTNAME = "prenom"
+
+        private fun fixStudentGithubLogin(csvGithubLogin : String) : String {
+            val fixedStudentGithubLogin = csvGithubLogin.trim().removeSuffix("/")
+            return if (fixedStudentGithubLogin.startsWith(GITHUB_URL_PREFIX, ignoreCase = true))
+                fixedStudentGithubLogin.substringAfterLast("/")
+            else ""
+        }
     }
 
     /**
@@ -38,10 +45,7 @@ class StudentFileParser(studentFilename: String) {
                 logger.info("Reading CSV file {}", studentFilename)
                 val csvStudents: CSVParser = CSVFormat.DEFAULT.withFirstRecordAsHeader().parse(it)
                 for (student in csvStudents) {
-                    val githubLogin = if (student[CSV_URL].startsWith(GITHUB_URL_PREFIX, ignoreCase = true))
-                        student[CSV_URL].substring(student[CSV_URL].lastIndexOf("/") + 1).trimEnd()
-                    else
-                        ""
+                    val githubLogin = fixStudentGithubLogin(student[CSV_URL])
                     logger.debug(
                         "Loading student ({}, {}, {}, {})",
                         student[CSV_STUDENT_NUMBER],

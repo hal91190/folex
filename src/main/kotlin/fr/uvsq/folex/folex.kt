@@ -23,6 +23,6 @@ fun main() {
 
     //Exercise.buildExercisesWithMaven(students)
 
-    //val outputFilename = studentFilename.substring(0, studentFilename.lastIndexOf(".")) + ".md"
-    //MarkdownReportGenerator(outputFilename, students).use { report -> report.generate() }
+    val outputFilename = studentFilename.substring(0, studentFilename.lastIndexOf(".")) + ".md"
+    MarkdownReportGenerator(outputFilename, students).use { report -> report.generate() }
 }
