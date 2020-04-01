@@ -1,8 +1,7 @@
 package fr.uvsq.folex
 
-import fr.uvsq.folex.Cfg.githubApiUrl
-import fr.uvsq.folex.Cfg.githubToken
 import fr.uvsq.folex.Cfg.repositoryNames
+import org.slf4j.LoggerFactory
 import java.io.Closeable
 import java.nio.file.Files
 import java.nio.file.Paths
@@ -22,7 +21,11 @@ const val MD_WARNING = ":warning:"
  * @author hal
  * @version 2020
  */
-class MarkdownReportGenerator(reportFilename : String, private val students : List<Student>) : Closeable {
+class MarkdownReportGenerator(private val reportFilename : String, private val students : List<Student>) : Closeable {
+    companion object {
+        private val logger = LoggerFactory.getLogger(MarkdownReportGenerator::class.java)
+    }
+
     /**
      * Fichier de sortie.
      */
@@ -51,6 +54,7 @@ class MarkdownReportGenerator(reportFilename : String, private val students : Li
      */
     private fun writeBody() {
         for (student in students) {
+            logger.debug("Generating Markdown report line for student {}", student)
             var mdLine = "${student.studentNo} | ${student.lastname} | ${student.firstname} | "
 
             if (!student.hasGithubAccount()) {
@@ -81,6 +85,7 @@ class MarkdownReportGenerator(reportFilename : String, private val students : Li
      * Génère le rapport.
      */
     fun generate() {
+        logger.info("Generating Markdown report in {}", reportFilename)
         writeHeader()
         writeBody()
 
