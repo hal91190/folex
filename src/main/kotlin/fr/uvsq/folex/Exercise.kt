@@ -67,6 +67,7 @@ class Exercise(student : Student, repository : String, val nbCommits : Int) {
         }
 
         fun buildExercisesWithMaven(students: List<Student>) {
+            createProjectDirectory()
             for (student in students) {
                 logger.debug("Building projects for student {}", student)
                 if (!student.hasGithubAccount())  {
@@ -122,6 +123,10 @@ class Exercise(student : Student, repository : String, val nbCommits : Int) {
             val repositories = mutableMapOf<String, Exercise>()
             for (repositoryName in Cfg.repositoryNames) {
                 val localPath = student.getOrCreateLocalDirectory(projectPath).resolve(repositoryName)
+                if (!Files.exists(localPath)) {
+                    logger.trace("Directory {} does not exist", localPath)
+                    continue
+                }
                 if (!Files.exists(localPath.resolve(GIT_DIRECTORY))) {
                     logger.trace("Directory {} exists but is not a git repository", localPath)
                     continue
