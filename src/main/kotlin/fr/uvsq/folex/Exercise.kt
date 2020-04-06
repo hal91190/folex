@@ -2,6 +2,7 @@ package fr.uvsq.folex
 
 import org.apache.maven.shared.invoker.*
 import org.eclipse.jgit.api.Git
+import org.eclipse.jgit.api.errors.GitAPIException
 import org.slf4j.LoggerFactory
 import java.nio.file.FileSystems
 import java.nio.file.Files
@@ -15,7 +16,7 @@ import java.util.stream.StreamSupport
  * @author hal
  * @version 2020
  */
-class Exercise(student : Student, repository : String, val nbCommits : Int) {
+class Exercise(student : Student, repository : String, val nbCommits : Int? = null) {
     companion object {
         private val logger = LoggerFactory.getLogger(Exercise::class.java)
 
@@ -43,26 +44,73 @@ class Exercise(student : Student, repository : String, val nbCommits : Int) {
                     continue
                 }
 
-                if (student.repositories == null) {
-                    logger.debug("Student {} has no exercise, attempting to load them locally", student.githubLogin)
-                    loadLocalExercises(student)
-                }
-                val exercises = student.repositories ?: mutableMapOf()
+                val noGithub = student.repositories == null
+                val exercises = student.repositories?.toMutableMap() ?: mutableMapOf()
 
                 for (repositoryName in Cfg.repositoryNames) {
-                    //TODO problème avec la création avec un nbCommit à -1
-                    val exercise = exercises[repositoryName] ?: Exercise(student, repositoryName, -1)
-                    if (exercise.exists) {
-                        exercise.pullRepository()
-                        logger.trace("Pulling repository {} for github account {}", repositoryName, student.githubLogin)
+                    if (noGithub) {
+                        val exercise = createExerciseFromLocalDirectory(student, repositoryName)
+                        if (exercise != null) exercises[repositoryName] = exercise
                     } else {
-                        //TODO gérer le cas des repository privée
-                        // Exception in thread "main" org.eclipse.jgit.api.errors.TransportException: https://github.com//UVSQ21917829/pglp_5.2: Authentication is required but no CredentialsProvider has been registered
-                        exercise.cloneRepository()
-                        logger.trace("Cloning repository {} for github account {}", repositoryName, student.githubLogin)
+                        val exercise = exercises[repositoryName]
+                        if (exercise == null) {
+                            logger.trace("Exercise {} does not exist on github for student {}", repositoryName, student.githubLogin)
+                            continue
+                        }
+                        try {
+                            if (exercise.isGitRepository) {
+                                exercise.pullRepository()
+                                logger.trace(
+                                    "Pulling repository {} for github account {}",
+                                    repositoryName,
+                                    student.githubLogin
+                                )
+                            } else {
+                                exercise.cloneRepository()
+                                logger.trace(
+                                    "Cloning repository {} for github account {}",
+                                    repositoryName,
+                                    student.githubLogin
+                                )
+                            }
+                        } catch (e : GitAPIException) {
+                            logger.error("Git error accessing repository {}", repositoryName)
+                            //TODO signaler l'exception
+                        }
                     }
                 }
             }
+        }
+
+        private fun createExerciseFromLocalDirectory(student: Student, repositoryName: String): Exercise? {
+            logger.trace("Loading exercise {} from local directory for student {}", repositoryName, student.githubLogin)
+            val localPath = student.getOrCreateLocalDirectory(projectPath).resolve(repositoryName)
+            if (!Files.exists(localPath)) {
+                logger.trace("Directory {} does not exist", localPath)
+                return null
+            }
+            if (!Files.exists(localPath.resolve(GIT_DIRECTORY))) {
+                logger.trace("Directory {} exists but is not a git repository", localPath)
+                return null
+            }
+            //TODO gérer les erreurs liées à git
+            try {
+                val repository = Git.open(localPath.toFile())
+                repository.pull().call()
+                val log = repository.log().call()
+                val nbCommits = StreamSupport.stream(log.spliterator(), false).count()
+                logger.trace(
+                    "Creating exercise {} with {} commits for student {}",
+                    repositoryName,
+                    nbCommits,
+                    student.githubLogin
+                )
+                return Exercise(student, repositoryName, nbCommits.toInt())
+            } catch (e : GitAPIException) {
+                logger.error("Git error accessing repository {}", repositoryName)
+                //TODO signaler l'exception
+            }
+            return null
         }
 
         fun buildExercisesWithMaven(students: List<Student>) {
@@ -86,7 +134,7 @@ class Exercise(student : Student, repository : String, val nbCommits : Int) {
 
                 for (repository in exercises) {
                     val exercise = repository.value
-                    if (exercise.exists && exercise.isMavenProject) {
+                    if (exercise.isGitRepository && exercise.isMavenProject) {
                         logger.trace("Build exercise {} with maven for student {}", repository.key, student.githubLogin)
                         val request: InvocationRequest = DefaultInvocationRequest()
                             .setBatchMode(true)
@@ -143,7 +191,7 @@ class Exercise(student : Student, repository : String, val nbCommits : Int) {
     private val repositoryUrl = "$GITHUB_URL_PREFIX/${student.githubLogin}/$repository"
     private val localPath = student.getOrCreateLocalDirectory(projectPath).resolve(repository)
 
-    val exists = Files.exists(localPath.resolve(GIT_DIRECTORY))
+    val isGitRepository = Files.exists(localPath.resolve(GIT_DIRECTORY))
     val isMavenProject = Files.exists(localPath.resolve(MAVEN_POM_FILE))
 
     fun cloneRepository() {
