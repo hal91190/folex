@@ -32,7 +32,7 @@ class Folex: CliktCommand() {
         }
 
         if (build) {
-            Exercise.buildExercisesWithMaven(students)
+            ExerciseBuilder.buildExercisesWithMaven(students)
         }
 
         val outputFilename = output ?: inputFilename.replaceAfterLast(".", "md")
