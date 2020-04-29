@@ -22,6 +22,8 @@ data class Student(val studentNo : String, val lastname : String, val firstname 
      */
     var repositories : Map<String, Exercise>? = null
 
+    fun hasRepositories() = repositories != null
+
     /**
      * Retourne true si l'étudiant a déclaré un compte github valide.
      */

@@ -2,9 +2,11 @@ package fr.uvsq.folex
 
 import org.apache.maven.shared.invoker.*
 import org.eclipse.jgit.api.Git
+import org.eclipse.jgit.api.errors.GitAPIException
 import org.slf4j.LoggerFactory
 import java.nio.file.Files
 import java.nio.file.Path
+import java.util.*
 import java.util.stream.StreamSupport
 
 /**
@@ -19,6 +21,10 @@ class ExerciseBuilder {
 
         private const val MAVEN_POM_FILE = "pom.xml"
         private val MAVEN_GOALS = listOf("clean", "package")
+        private val MAVEN_PROPS = Properties()
+        init {
+            MAVEN_PROPS.setProperty("org.slf4j.simpleLogger.defaultLogLevel", "warn")
+        }
 
         private fun loadLocalExercises(student: Student) {
             val repositories = mutableMapOf<String, Exercise>()
@@ -32,11 +38,20 @@ class ExerciseBuilder {
                     logger.trace("Directory {} exists but is not a git repository", localPath)
                     continue
                 }
-                val repository = Git.open(localPath.toFile())
-                val log = repository.log().call()
-                val nbCommits = StreamSupport.stream(log.spliterator(), false).count()
-                logger.trace("Adding exercise {} with {} commits for student {}", repositoryName, nbCommits, student.githubLogin)
-                repositories[repositoryName] = Exercise(student, repositoryName, nbCommits.toInt())
+                try {
+                    val repository = Git.open(localPath.toFile())
+                    val log = repository.log().call()
+                    val nbCommits = StreamSupport.stream(log.spliterator(), false).count()
+                    logger.trace(
+                        "Adding exercise {} with {} commits for student {}",
+                        repositoryName,
+                        nbCommits,
+                        student.githubLogin
+                    )
+                    repositories[repositoryName] = Exercise(student, repositoryName, nbCommits.toInt())
+                } catch (e : GitAPIException) {
+                    logger.error("Git exception for exercise {} of student {}: {}", repositoryName, student.githubLogin, e)
+                }
             }
             student.repositories = if (repositories.isEmpty()) null else repositories
         }
@@ -63,12 +78,12 @@ class ExerciseBuilder {
                 for (repository in exercises) {
                     val localPath : Path = student.getOrCreateLocalDirectory(Exercise.projectPath).resolve(repository.key)
                     val exercise = repository.value
-                    val isMavenProject = Files.exists(localPath.resolve(MAVEN_POM_FILE))
-                    if (exercise.isGitRepository && isMavenProject) {
+                    if (exercise.isGitRepository && exercise.isMavenProject) {
                         logger.trace("Build exercise {} with maven for student {}", repository.key, student.githubLogin)
                         val request: InvocationRequest = DefaultInvocationRequest()
                             .setBatchMode(true)
                         //TODO Des saisies dans les tests unitaires peuvent bloquer le processus
+                        request.properties = MAVEN_PROPS
                         request.pomFile = exercise.localPath.resolve(MAVEN_POM_FILE).toFile()
                         request.goals = MAVEN_GOALS
 
@@ -77,7 +92,19 @@ class ExerciseBuilder {
                         val invoker: Invoker = DefaultInvoker()
                         try {
                             val result : InvocationResult = invoker.execute(request)
-                            logger.trace("Build exercise {} with maven for student {} ({})", repository.key, student.githubLogin, if (result.exitCode == 0) "OK" else "FAILED")
+                            logger.trace("Exercise {} for student {} built ({})", repository.key, student.githubLogin, if (result.exitCode == 0) "OK" else "FAILED")
+                            if (result.exitCode == 0) {
+                                exercise.hasBuilt = true
+                                val testCollector = JUnitTestCollector(localPath.toFile())
+                                testCollector.collect()
+                                if (testCollector.jUnitResults.isEmpty()) {
+                                    logger.trace("No JUnit results for exercise {} for student {}", repository.key, student.githubLogin)
+                                } else {
+                                    logger.trace("JUnit results for exercise {} for student {}", repository.key, student.githubLogin)
+                                    testCollector.jUnitResults.forEach { r -> println(r) } //TODO ajouter dans l'exercice
+                                    exercise.jUnitResult = testCollector.jUnitResults
+                                }
+                            }
                         } catch (e: MavenInvocationException) {
                             logger.trace("Maven error building exercise {} for student {}", repository.key, student.githubLogin)
                         }

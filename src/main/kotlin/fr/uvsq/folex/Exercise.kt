@@ -7,6 +7,7 @@ import java.nio.file.FileSystems
 import java.nio.file.Files
 import java.nio.file.Path
 import java.util.stream.StreamSupport
+import kotlin.reflect.jvm.internal.impl.load.kotlin.PackagePartProvider
 
 //TODO faire de Exercise une data class ?
 
@@ -28,6 +29,8 @@ class Exercise(student : Student, repository : String, val nbCommits : Int? = nu
 
         private const val GITHUB_URL_PREFIX = "https://github.com/"
         const val GIT_DIRECTORY = ".git"
+
+        const val MAVEN_POM = "pom.xml"
 
         /**
          * Clone ou met à jour les dépôts des étudiants.
@@ -123,6 +126,12 @@ class Exercise(student : Student, repository : String, val nbCommits : Int? = nu
     val localPath : Path = student.getOrCreateLocalDirectory(projectPath).resolve(repository)
 
     val isGitRepository = Files.exists(localPath.resolve(GIT_DIRECTORY))
+
+    val isMavenProject = Files.exists(localPath.resolve(MAVEN_POM))
+
+    var hasBuilt = false
+
+    var jUnitResult = listOf<JUnitResult>()
 
     fun cloneRepository() {
         Git.cloneRepository()

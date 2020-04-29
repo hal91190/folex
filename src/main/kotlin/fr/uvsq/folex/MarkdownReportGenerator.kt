@@ -53,26 +53,45 @@ class MarkdownReportGenerator(private val reportFilename : String, private val s
             logger.debug("Generating Markdown report line for student {}", student)
             var mdLine = "${student.studentNo} | ${student.lastname} | ${student.firstname} | "
 
-            if (!student.hasGithubAccount()) {
+            if (!student.hasGithubAccount() || !student.hasRepositories()) {
+                // L'URL du compte github est incorrect
+                // Le compte n'existe pas sur github
+                // Le code de réponse de la requête HTTP est incorrect
                 mdLine += "$MD_KO |"
                 output.appendln(mdLine)
                 continue
             }
 
+            mdLine += "$MD_OK | " // L'étudiant dispose d'un compte github accessible
+
             val repositories = student.repositories
             if (repositories != null) {
-                mdLine += "$MD_OK | "
                 for (repositoryName in repositoryNames) {
-                    mdLine += when (val nbCommits = repositories[repositoryName]?.nbCommits) {
-                        0 -> "$MD_KO |"
-                        in 1..MINIMUM_NUMBER_OF_COMMITS -> "$MD_WARNING ($nbCommits)|"
-                        is Int -> "$MD_OK ($nbCommits)|"
-                        else -> "$MD_KO |"
+                    val repository = repositories[repositoryName]
+                    mdLine += "["
+                    if (repository == null) { //TODO dans quels cas ?
+                        mdLine += MD_KO
+                    } else {
+                        mdLine += when (val nbCommits = repository.nbCommits) {
+                            0 -> MD_KO
+                            in 1..MINIMUM_NUMBER_OF_COMMITS -> "$MD_WARNING ($nbCommits)"
+                            is Int -> "$MD_OK ($nbCommits)"
+                            else -> MD_KO
+                        } // Statut git
+                        mdLine += ", "
+                        if (!repository.isMavenProject || !repository.hasBuilt) {
+                            // Ce n'est pas un projet Maven
+                            // Le build a échoué
+                            mdLine += MD_KO
+                        } else {
+                            mdLine += MD_OK
+                        } // Statut Maven
+                        //TODO agréger et ajouter les résultats JUnit
                     }
+                    mdLine += "] |"
                 }
-            } else { // le compte n'existe pas ou le code de réponse est incorrect
-                mdLine += "$MD_KO |"
             }
+
             output.appendln(mdLine)
         }
     }
