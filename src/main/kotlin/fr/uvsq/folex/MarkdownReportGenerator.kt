@@ -86,7 +86,11 @@ class MarkdownReportGenerator(private val reportFilename : String, private val s
                         } else {
                             mdLine += MD_OK
                         } // Statut Maven
-                        //TODO agréger et ajouter les résultats JUnit
+                        mdLine += ", "
+                        val result = repository.aggregateJUnitResults(repositoryName, student)
+                        mdLine += result
+                        mdLine += ", "
+                        //TODO intégrer checkstyle
                     }
                     mdLine += "] |"
                 }

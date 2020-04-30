@@ -93,17 +93,15 @@ class ExerciseBuilder {
                         try {
                             val result : InvocationResult = invoker.execute(request)
                             logger.trace("Exercise {} for student {} built ({})", repository.key, student.githubLogin, if (result.exitCode == 0) "OK" else "FAILED")
-                            if (result.exitCode == 0) {
-                                exercise.hasBuilt = true
-                                val testCollector = JUnitTestCollector(localPath.toFile())
-                                testCollector.collect()
-                                if (testCollector.jUnitResults.isEmpty()) {
-                                    logger.trace("No JUnit results for exercise {} for student {}", repository.key, student.githubLogin)
-                                } else {
-                                    logger.trace("JUnit results for exercise {} for student {}", repository.key, student.githubLogin)
-                                    testCollector.jUnitResults.forEach { r -> println(r) } //TODO ajouter dans l'exercice
-                                    exercise.jUnitResult = testCollector.jUnitResults
-                                }
+                            exercise.hasBuilt = result.exitCode == 0
+                            val testCollector = JUnitTestCollector(localPath.toFile())
+                            testCollector.collect()
+                            if (testCollector.jUnitResults.isEmpty()) {
+                                logger.trace("No JUnit results for exercise {} for student {}", repository.key, student.githubLogin)
+                            } else {
+                                logger.trace("JUnit results for exercise {} for student {}", repository.key, student.githubLogin)
+                                testCollector.jUnitResults.forEach { r -> println(r) } //TODO ajouter dans l'exercice
+                                exercise.jUnitResults = testCollector.jUnitResults
                             }
                         } catch (e: MavenInvocationException) {
                             logger.trace("Maven error building exercise {} for student {}", repository.key, student.githubLogin)

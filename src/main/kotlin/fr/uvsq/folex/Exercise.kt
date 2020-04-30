@@ -7,7 +7,6 @@ import java.nio.file.FileSystems
 import java.nio.file.Files
 import java.nio.file.Path
 import java.util.stream.StreamSupport
-import kotlin.reflect.jvm.internal.impl.load.kotlin.PackagePartProvider
 
 //TODO faire de Exercise une data class ?
 
@@ -131,7 +130,32 @@ class Exercise(student : Student, repository : String, val nbCommits : Int? = nu
 
     var hasBuilt = false
 
-    var jUnitResult = listOf<JUnitResult>()
+    var jUnitResults = listOf<JUnitResult>()
+
+    /**
+     * Fait la somme de chacune des stats JUnit.
+     *
+     * @return une instance de JUnitResult contenant les sommes.
+     */
+    fun aggregateJUnitResults(repositoryName: String, student: Student) : JUnitResult {
+        //TODO à réécrire en style fonctionnel
+        val name = "$repositoryName@${student.githubLogin}"
+        var nbTests = 0
+        var nbSkipped = 0
+        var nbFailures = 0
+        var nbErrors = 0
+        var executionTime = 0.0
+
+        for (result in jUnitResults) {
+            nbTests += result.nbTests
+            nbSkipped += result.nbSkipped
+            nbFailures += result.nbFailures
+            nbErrors += result.nbErrors
+            executionTime += result.executionTime
+        }
+
+        return JUnitResult(name, nbTests, nbSkipped, nbFailures, nbErrors, executionTime)
+    }
 
     fun cloneRepository() {
         Git.cloneRepository()

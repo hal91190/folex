@@ -9,7 +9,7 @@ import java.time.LocalDateTime
 import javax.xml.parsers.DocumentBuilderFactory
 import javax.xml.parsers.ParserConfigurationException
 
-class JUnitResult private constructor(
+class JUnitResult constructor(
         val name: String,
         val nbTests: Int,
         val nbSkipped: Int,
