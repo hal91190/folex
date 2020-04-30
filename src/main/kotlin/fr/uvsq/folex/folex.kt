@@ -13,7 +13,9 @@ class Folex: CliktCommand() {
     private val clone by option(help = "Clone ou met à jour les dépôts locaux à partir de github").flag()
     private val input by option("-i", "--input", help = "Nom du fichier CSV contenant la liste des étudiants")
     private val noGithub by option(help = "Ignore l'interrogation de l'API github").flag()
-    private val output by option("-o", "--output", help = "Nom du fichier Markdown de sortie")
+    private val output by option("-o", "--output", help = "Nom du fichier de sortie (sans extension)")
+    private val csv by option(help = "Fichier de sortie au format csv").flag()
+    private val md by option(help = "Fichier de sortie au format Markdown").flag()
 
     override fun run() {
         val inputFilename = input ?: studentFilename
@@ -35,12 +37,24 @@ class Folex: CliktCommand() {
             ExerciseBuilder.buildExercisesWithMaven(students)
         }
 
-        val outputFilename = output ?: inputFilename.replaceAfterLast(".", "md")
-        try {
-            MarkdownReportGenerator(outputFilename, students).generate()
-        } catch (e: IOException) {
-            echo("Erreur d'E/S lors de l'ouverture du fichier de sortie $outputFilename.")
-            exitProcess(1)
+        if (md) {
+            val outputFilename = output?.plus(".md") ?: inputFilename.replaceAfterLast(".", "md")
+            try {
+                MarkdownReportGenerator(outputFilename, students).generate()
+            } catch (e: IOException) {
+                echo("Erreur d'E/S lors de l'ouverture du fichier de sortie $outputFilename.")
+                exitProcess(1)
+            }
+        }
+
+        if (csv) {
+            val outputFilename = output?.plus(".csv") ?: inputFilename.replaceAfterLast(".", "-out.csv")
+            try {
+                CsvReportGenerator(outputFilename, students).generate()
+            } catch (e: IOException) {
+                echo("Erreur d'E/S lors de l'ouverture du fichier de sortie $outputFilename.")
+                exitProcess(1)
+            }
         }
     }
 }
