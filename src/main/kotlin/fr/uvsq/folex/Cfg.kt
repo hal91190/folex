@@ -1,6 +1,9 @@
 package fr.uvsq.folex
 
 import java.io.FileReader
+import java.nio.file.FileSystems
+import java.nio.file.Files
+import java.nio.file.Path
 import java.util.*
 
 /**
@@ -15,6 +18,17 @@ object Cfg {
      * Le nom du fichier de propriétés contenant la configuration.
      */
     private const val PROPERTY_FILE = "folex.properties"
+
+    /**
+     * Nom du répertoire qui recevra les projets.
+     */
+    private const val PROJECT_DIRECTORY_NAME = "projects"
+    val projectPath : Path = FileSystems.getDefault().getPath(PROJECT_DIRECTORY_NAME)
+    init {
+        if (!Files.exists(projectPath)) {
+            Files.createDirectory(projectPath)
+        }
+    }
 
     /**
      * Les propriétés chargées depuis le fichier de configuration.

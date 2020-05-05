@@ -20,12 +20,6 @@ class Exercise(student : Student, repository : String, val nbCommits : Int? = nu
     companion object {
         private val logger = LoggerFactory.getLogger(Exercise::class.java)
 
-        /**
-         * Nom du répertoire qui recevra les projets.
-         */
-        private const val PROJECT_DIRECTORY_NAME = "projects"
-        val projectPath : Path = FileSystems.getDefault().getPath(PROJECT_DIRECTORY_NAME)
-
         private const val GITHUB_URL_PREFIX = "https://github.com/"
         const val GIT_DIRECTORY = ".git"
 
@@ -35,7 +29,6 @@ class Exercise(student : Student, repository : String, val nbCommits : Int? = nu
          * Clone ou met à jour les dépôts des étudiants.
          */
         fun cloneOrPullRepositories(students : List<Student>) {
-            createProjectDirectory()
             for (student in students) {
                 logger.debug("Cloning or updating repositories for student {}", student)
                 if (!student.hasGithubAccount())  {
@@ -83,7 +76,7 @@ class Exercise(student : Student, repository : String, val nbCommits : Int? = nu
 
         private fun createExerciseFromLocalDirectory(student: Student, repositoryName: String): Exercise? {
             logger.trace("Loading exercise {} from local directory for student {}", repositoryName, student.githubLogin)
-            val localPath = student.getOrCreateLocalDirectory(projectPath).resolve(repositoryName)
+            val localPath = student.getOrCreateLocalDirectory(Cfg.projectPath).resolve(repositoryName)
             if (!Files.exists(localPath)) {
                 logger.trace("Directory {} does not exist", localPath)
                 return null
@@ -111,18 +104,10 @@ class Exercise(student : Student, repository : String, val nbCommits : Int? = nu
             }
             return null
         }
-
-        fun createProjectDirectory() : Path {
-            if (!Files.exists(projectPath)) {
-                Files.createDirectory(projectPath)
-                logger.info("Creating directory {}", projectPath)
-            }
-            return projectPath
-        }
     }
 
     private val repositoryUrl = "$GITHUB_URL_PREFIX/${student.githubLogin}/$repository"
-    val localPath : Path = student.getOrCreateLocalDirectory(projectPath).resolve(repository)
+    val localPath : Path = student.getOrCreateLocalDirectory(Cfg.projectPath).resolve(repository)
 
     val isGitRepository = Files.exists(localPath.resolve(GIT_DIRECTORY))
 

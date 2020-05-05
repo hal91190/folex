@@ -5,8 +5,6 @@ import org.apache.commons.csv.CSVPrinter
 import org.slf4j.LoggerFactory
 import java.io.FileWriter
 import java.io.IOException
-import java.time.LocalDate
-import kotlin.reflect.jvm.internal.impl.load.kotlin.JvmType
 
 
 /**
@@ -20,12 +18,12 @@ class CsvReportGenerator(private val reportFilename : String, private val studen
         private val logger = LoggerFactory.getLogger(CsvReportGenerator::class.java)
     }
 
-    fun generate() {
+    fun generate(withBuildInfos : Boolean = false) {
         try {
             CSVPrinter(FileWriter(reportFilename), CSVFormat.EXCEL).use {
                 logger.info("Generating CSV report in {}", reportFilename)
-                writeHeader(it)
-                writeBody(it)
+                writeHeader(it, withBuildInfos)
+                writeBody(it, withBuildInfos)
             }
         } catch (e: IOException) {
             logger.error("I/O error while opening output file")
@@ -33,21 +31,23 @@ class CsvReportGenerator(private val reportFilename : String, private val studen
         }
     }
 
-    private fun writeHeader(output: CSVPrinter) {
+    private fun writeHeader(output: CSVPrinter, withBuildInfos: Boolean) {
         val header = mutableListOf("no_etud", "nom", "prenom", "github")
         for (repository in Cfg.repositoryNames) {
             header.add("${repository}_nb_commits")
-            header.add("${repository}_maven")
-            header.add("${repository}_junit_tests")
-            header.add("${repository}_junit_skipped")
-            header.add("${repository}_junit_failure")
-            header.add("${repository}_junit_errors")
-            header.add("${repository}_junit_time")
+            if (withBuildInfos) {
+                header.add("${repository}_maven")
+                header.add("${repository}_junit_tests")
+                header.add("${repository}_junit_skipped")
+                header.add("${repository}_junit_failure")
+                header.add("${repository}_junit_errors")
+                header.add("${repository}_junit_time")
+            }
         }
         output.printRecord(header)
     }
 
-    private fun writeBody(output: CSVPrinter) {
+    private fun writeBody(output: CSVPrinter, withBuildInfos: Boolean) {
         for (student in students) {
             logger.debug("Generating CSV report line for student {}", student)
             val line = mutableListOf<Any>(student.studentNo, student.lastname, student.firstname)
@@ -71,19 +71,21 @@ class CsvReportGenerator(private val reportFilename : String, private val studen
                         line.add(-1)
                     } else {
                         line.add(repository.nbCommits ?: -1)
-                        if (!repository.isMavenProject || !repository.hasBuilt) {
-                            // Ce n'est pas un projet Maven
-                            // Le build a échoué
-                            line.add("non")
-                        } else {
-                            line.add("oui")
-                        } // Statut Maven
-                        val result = repository.aggregateJUnitResults(repositoryName, student)
-                        line.add(result.nbTests)
-                        line.add(result.nbSkipped)
-                        line.add(result.nbFailures)
-                        line.add(result.nbErrors)
-                        line.add(result.executionTime)
+                        if (withBuildInfos) {
+                            if (!repository.isMavenProject || !repository.hasBuilt) {
+                                // Ce n'est pas un projet Maven
+                                // Le build a échoué
+                                line.add("non")
+                            } else {
+                                line.add("oui")
+                            } // Statut Maven
+                            val result = repository.aggregateJUnitResults(repositoryName, student)
+                            line.add(result.nbTests)
+                            line.add(result.nbSkipped)
+                            line.add(result.nbFailures)
+                            line.add(result.nbErrors)
+                            line.add(result.executionTime)
+                        }
                     }
                 }
             }

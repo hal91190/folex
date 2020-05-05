@@ -40,7 +40,7 @@ class Folex: CliktCommand() {
         if (md) {
             val outputFilename = output?.plus(".md") ?: inputFilename.replaceAfterLast(".", "md")
             try {
-                MarkdownReportGenerator(outputFilename, students).generate()
+                MarkdownReportGenerator(outputFilename, students).generate(build)
             } catch (e: IOException) {
                 echo("Erreur d'E/S lors de l'ouverture du fichier de sortie $outputFilename.")
                 exitProcess(1)
@@ -48,9 +48,9 @@ class Folex: CliktCommand() {
         }
 
         if (csv) {
-            val outputFilename = output?.plus(".csv") ?: inputFilename.replaceAfterLast(".", "-out.csv")
+            val outputFilename = output?.plus(".csv") ?: inputFilename.replaceAfterLast(".", "out.csv")
             try {
-                CsvReportGenerator(outputFilename, students).generate()
+                CsvReportGenerator(outputFilename, students).generate(build)
             } catch (e: IOException) {
                 echo("Erreur d'E/S lors de l'ouverture du fichier de sortie $outputFilename.")
                 exitProcess(1)

@@ -48,7 +48,7 @@ class MarkdownReportGenerator(private val reportFilename : String, private val s
     /**
      * Écrit le corps du tableau.
      */
-    private fun writeBody(output: Writer) {
+    private fun writeBody(output: Writer, withBuildInfos: Boolean) {
         for (student in students) {
             logger.debug("Generating Markdown report line for student {}", student)
             var mdLine = "${student.studentNo} | ${student.lastname} | ${student.firstname} | "
@@ -78,23 +78,25 @@ class MarkdownReportGenerator(private val reportFilename : String, private val s
                             is Int -> "$MD_OK ($nbCommits)"
                             else -> MD_KO
                         } // Statut git
-                        mdLine += ", "
-                        if (!repository.isMavenProject || !repository.hasBuilt) {
-                            // Ce n'est pas un projet Maven
-                            // Le build a échoué
-                            mdLine += MD_KO
-                        } else {
-                            mdLine += MD_OK
-                        } // Statut Maven
-                        mdLine += ", "
-                        val result = repository.aggregateJUnitResults(repositoryName, student)
-                        mdLine += result
-                        mdLine += ", "
-                        //TODO intégrer checkstyle
+                        if (withBuildInfos) {
+                            mdLine += ", "
+                            if (!repository.isMavenProject || !repository.hasBuilt) {
+                                // Ce n'est pas un projet Maven
+                                // Le build a échoué
+                                mdLine += MD_KO
+                            } else {
+                                mdLine += MD_OK
+                            } // Statut Maven
+                            mdLine += ", "
+                            val result = repository.aggregateJUnitResults(repositoryName, student)
+                            mdLine += result
+                            mdLine += ", "
+                            //TODO intégrer checkstyle
+                        }
                     }
                     mdLine += "] |"
                 }
-            }
+            } //TODO else ?
 
             output.appendln(mdLine)
         }
@@ -103,12 +105,12 @@ class MarkdownReportGenerator(private val reportFilename : String, private val s
     /**
      * Génère le rapport.
      */
-    fun generate() {
+    fun generate(withBuildInfos : Boolean = false) {
         try {
             Files.newBufferedWriter(Paths.get(reportFilename)).use {
                 logger.info("Generating Markdown report in {}", reportFilename)
                 writeHeader(it)
-                writeBody(it)
+                writeBody(it, withBuildInfos)
             }
         } catch (e: IOException) {
             logger.error("I/O error while opening output file")

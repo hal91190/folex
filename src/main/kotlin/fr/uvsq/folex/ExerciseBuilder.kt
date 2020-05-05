@@ -29,7 +29,7 @@ class ExerciseBuilder {
         private fun loadLocalExercises(student: Student) {
             val repositories = mutableMapOf<String, Exercise>()
             for (repositoryName in Cfg.repositoryNames) {
-                val localPath = student.getOrCreateLocalDirectory(Exercise.projectPath).resolve(repositoryName)
+                val localPath = student.getOrCreateLocalDirectory(Cfg.projectPath).resolve(repositoryName)
                 if (!Files.exists(localPath)) {
                     logger.trace("Directory {} does not exist", localPath)
                     continue
@@ -57,7 +57,6 @@ class ExerciseBuilder {
         }
 
         fun buildExercisesWithMaven(students: List<Student>) {
-            Exercise.createProjectDirectory()
             for (student in students) {
                 logger.debug("Building projects for student {}", student)
                 if (!student.hasGithubAccount())  {
@@ -76,7 +75,7 @@ class ExerciseBuilder {
                 }
 
                 for (repository in exercises) {
-                    val localPath : Path = student.getOrCreateLocalDirectory(Exercise.projectPath).resolve(repository.key)
+                    val localPath : Path = student.getOrCreateLocalDirectory(Cfg.projectPath).resolve(repository.key)
                     val exercise = repository.value
                     if (exercise.isGitRepository && exercise.isMavenProject) {
                         logger.trace("Build exercise {} with maven for student {}", repository.key, student.githubLogin)
@@ -86,6 +85,8 @@ class ExerciseBuilder {
                         request.properties = MAVEN_PROPS
                         request.pomFile = exercise.localPath.resolve(MAVEN_POM_FILE).toFile()
                         request.goals = MAVEN_GOALS
+                        //TODO ajouter les variables d'environnement dans le fichier de propriétés
+                        // request.addShellEnvironment("JAVA_HOME", "/usr/lib/jvm/java-8-openjdk-amd64/")
 
                         //TODO La variable d'environnement M2_HOME doit pointer sur le répertoire d'installation de maven
                         // export M2_HOME=/usr/share/maven/
